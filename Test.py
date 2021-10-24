@@ -30,7 +30,7 @@ driver.get(url)
 time.sleep(5)
 
 python_button = driver.find_element_by_link_text('DIVE IN')
-python_button.click() #click link
+python_button.click()
 html = driver.page_source
 
 # this renders the JS code and stores all of the information in static HTML code.
