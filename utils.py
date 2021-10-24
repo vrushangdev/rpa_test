@@ -1,6 +1,6 @@
 import pandas as pd
 from RPA.Browser.Selenium import Selenium
-import  time
+import time
 import json
 import csv
 from config import agency_file_path, funding_file_path, pdf_download_path
@@ -17,63 +17,31 @@ def scrape_agency_list(url):
         url: website url
     :return: list of agency as dataframe
     """
+
     browser.open_available_browser(url)
     dive_in = "xpath://a[contains(text(),'DIVE IN')]"
     dive_in_button = browser.find_element(dive_in)
     dive_in_button.click()
-
-
-    # Sample Javascript Code.
-    scrape_agency_list = """
-    let saved_list = {};
-    function scrape_agency_list(){
-    agency_list = document.querySelectorAll("div.col-sm-4.text-center.noUnderline");
-    final_list ={};
-    for(var i=0;i<agency_list.length; i++ ){
-
-      agency_name = document.querySelectorAll("div.col-sm-4.text-center.noUnderline")[i].querySelector('span.h4').innerText;
-      agency_expense = document.querySelectorAll("div.col-sm-4.text-center.noUnderline")[i].querySelector('span.h1').innerText;
-      agency_link = document.querySelectorAll('a.btn.btn-default.btn-sm')[0].href;
-      final_list[i] = {agency_name: agency_name, agency_expense: agency_expense, agency_link: agency_link };
-
-    }
-      return final_list;
-    }
-    saved_list = scrape_agency_list();
-    data = "<div id='agency_data'>" + JSON.stringify(saved_list) + "</div>";
-    console.log(data);
-    document.write(data);
-    """
-    # Replaced time.sleep with wait for element to load
     wait = WebDriverWait(browser, 10)
-    waiting = wait.until(presence_of_element_located((By.CSS_SELECTOR, "div.col-sm-4.text-center.noUnderline")))
-    browser.execute_javascript(scrape_agency_list)
-    wait.until(presence_of_element_located(By.CSS_SELECTOR, "#agency_data"))
-    data = browser.find_element('agency_data')
-    data = json.loads(data.text)
-    print(data)
+    wait
+    saved_list = []
+    agency_tiles = browser.find_elements("css:#agency-tiles-widget .row .col-sm-4")
+    print(agency_tiles)
+    for tile in range(len(agency_tiles)):
+        try:
+            agency_name = agency_tiles[tile].find_elements_by_css_selector("#agency-tiles-widget .h4")[0].text
+            agency_expense = agency_tiles[tile].find_elements_by_css_selector("#agency-tiles-widget .row .col-sm-4 .h1")[0].text
+            agency_link = agency_tiles[tile].find_elements_by_css_selector("#agency-tiles-widget .row .col-sm-4 .btn")[0].get_attribute('href')
+            tile_data = [agency_name, agency_expense, agency_link]
+            saved_list.append(tile_data)
+        except Exception as e:
+            pass
+    agency_list = pd.DataFrame(saved_list,columns=["agency_name","agency_expense", "agency_link"])
+    agency_list.to_csv(agency_file_path)
     browser.close_all_browsers()
-    agency_list = data
     return agency_list
 
 
-def save_agency_list(agency_list):
-    """
-
-    :param agency_list:
-    :return: Dataframe of Agency List
-    """
-    with open(agency_file_path, 'w') as csv_data:
-        column_names = ["Agency Name", "Agency Expense", "Agency Link"]
-        csv_writer = csv.writer(csv_data, delimiter=',')
-        csv_writer.writerow(column_names)
-        for k, v in agency_list.items():
-            data_row = dict(v)
-            print([v['agency_name'], v['agency_expense'], v['agency_link']])
-            data_row = [v['agency_name'], v['agency_expense'], v['agency_link']]
-            csv_writer.writerow(data_row)
-    agency_list_df = pd.read_csv(agency_file_path)
-    return agency_list_df
 
 
 def scrape_investment_list(url):
@@ -120,6 +88,7 @@ def scrape_investment_list(url):
     data = browser.find_element('funding_data')
     data = json.loads(data.text)
     funding_dataframe = pd.DataFrame(data)
+    browser.close_browser()
     return funding_dataframe
 
 
