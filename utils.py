@@ -4,6 +4,9 @@ import  time
 import json
 import csv
 from config import agency_file_path, funding_file_path, pdf_download_path
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.expected_conditions import presence_of_element_located
+from selenium.webdriver.common.by import By
 
 browser = Selenium()
 
@@ -41,9 +44,11 @@ def scrape_agency_list(url):
     console.log(data);
     document.write(data);
     """
-    time.sleep(5)
+    # Replaced time.sleep with wait for element to load
+    wait = WebDriverWait(browser, 10)
+    waiting = wait.until(presence_of_element_located((By.CSS_SELECTOR, "div.col-sm-4.text-center.noUnderline")))
     browser.execute_javascript(scrape_agency_list)
-    time.sleep(3)
+    wait.until(presence_of_element_located(By.CSS_SELECTOR, "#agency_data"))
     data = browser.find_element('agency_data')
     data = json.loads(data.text)
     print(data)

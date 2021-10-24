@@ -22,7 +22,7 @@ def download_agency_list(challenge_website_url):
     return agency_list_df
 
 
-# TODO Task 2 - Download Individual Investments & Business Cases
+#  Task 2 - Download Individual Investments & Business Cases
 def download_individual_investments(agency_website_url):
     """
     :param agency_website_url:
