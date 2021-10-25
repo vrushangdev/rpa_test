@@ -7,6 +7,8 @@ from config import agency_file_path, funding_file_path, pdf_download_path
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.expected_conditions import presence_of_element_located
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
+
 
 browser = Selenium()
 
@@ -22,8 +24,7 @@ def scrape_agency_list(url):
     dive_in = "xpath://a[contains(text(),'DIVE IN')]"
     dive_in_button = browser.find_element(dive_in)
     dive_in_button.click()
-    wait = WebDriverWait(browser, 10)
-    wait
+    browser.wait_until_element_is_visible("css:#agency-tiles-widget .row .col-sm-4")
     saved_list = []
     agency_tiles = browser.find_elements("css:#agency-tiles-widget .row .col-sm-4")
     print(agency_tiles)
@@ -36,7 +37,7 @@ def scrape_agency_list(url):
             saved_list.append(tile_data)
         except Exception as e:
             pass
-    agency_list = pd.DataFrame(saved_list,columns=["agency_name","agency_expense", "agency_link"])
+    agency_list = pd.DataFrame(saved_list, columns=["agency_name","agency_expense", "agency_link"])
     agency_list.to_csv(agency_file_path)
     browser.close_all_browsers()
     return agency_list
@@ -51,43 +52,41 @@ def scrape_investment_list(url):
     :return: DataFrame()
     """
     browser.open_available_browser(url)
-    time.sleep(10)
-    browser.select_from_list_by_value('investments-table-object_length', str(-1))
-    time.sleep(10)
+    time.sleep(20)
+    investment_table = browser.find_element("id:investments-table-object_wrapper")
+    Select(investment_table.find_element_by_css_selector(".c-select:nth-child(1)")).select_by_value("-1")
+    time.sleep(15)
 
-    #Execute Scraper
-    funding_scraper = """
-    table = document.querySelector('#investments-table-object');
-    table_rows = table.tBodies[0].children[0];
-    total_rows = table.tBodies[0].children.length;    
-    funding_list = {};
-    
-    for(let i=0;i< total_rows;i++){
-    
-    UII = table.tBodies[0].children[i].children[0].textContent;
-    try{
-    UII_LINK = table.tBodies[0].children[i].children[0].children[0].href;
-    }catch(err){
-    UII_LINK = "None";
-    }
-    Bureau = table.tBodies[0].children[i].children[1].textContent;
-    investment_title = table.tBodies[0].children[0].children[2].textContent;
-    total_spending = table.tBodies[0].children[0].children[3].textContent;
-    spending_type = table.tBodies[0].children[0].children[4].textContent;
-    cio_rating = table.tBodies[0].children[0].children[5].textContent;
-    no_of_projects = table.tBodies[0].children[0].children[6].textContent;
-    
-    funding_list[i] = {"UII": UII, "UII_LINK": UII_LINK, "Bureau": Bureau, "investment_title":investment_title, "total_spending":total_spending,"spending_type":spending_type,"cio_rating":cio_rating,"no_of_projects":no_of_projects ,};
-    }
-    data = "<div id='funding_data'>" + JSON.stringify(funding_list) + "</div>";
-    console.log(data);
-    document.write(data);    
-                      """
-    browser.execute_javascript(funding_scraper)
-    time.sleep(10)
-    data = browser.find_element('funding_data')
-    data = json.loads(data.text)
-    funding_dataframe = pd.DataFrame(data)
+    funding_list = []
+    column_list = ["UII", "UII Link", "Bureau", "Investment Title", "Total Spending", "Spending Type", "CIO Rating", "No Of Projects"]
+    funding_table = browser.find_element("id:investments-table-object")
+    rows = funding_table.find_elements_by_tag_name("tr")
+    for row in rows:
+        columns = row.find_elements_by_tag_name("td")
+        if len(columns) == 7:
+            UII = columns[0].text
+            try:
+                UII_LINK = columns[0].find_elements_by_tag_name("a")[0].get_attribute('href')
+            except Exception as e:
+                UII_LINK = "None"
+            Bureau = columns[1].text
+            investmentTitle = columns[2].text
+            totalSpending = columns[3].text
+            spendingType = columns[4].text
+            CIORating = columns[5].text
+            NoOfProjects = columns[5].text
+            funding_data = [UII, UII_LINK, Bureau, investmentTitle, totalSpending, spendingType, CIORating, NoOfProjects]
+            funding_list.append(funding_data)
+
+
+
+    # browser.execute_javascript(funding_scraper)
+    # data = browser.find_element('funding_data')
+    # data = json.loads(data.text)
+
+    funding_dataframe = pd.DataFrame(funding_list, columns=column_list)
+    print(funding_dataframe)
+    funding_dataframe.to_csv(funding_file_path)
     browser.close_browser()
     return funding_dataframe
 
@@ -99,7 +98,7 @@ def download_all_business_case(funding_file_path):
     """
     data = pd.read_csv(funding_file_path)
     # print(data["UII_LINK"])
-    for link in data["UII_LINK"].items():
+    for link in data["UII Link"].items():
         if str(link[1]) != "None":
             download_business_case(link[1])
 
@@ -119,15 +118,4 @@ def download_business_case(funding_url):
     download_browser.close_browser()
     return True
 
-def save_investment_list(funding_dataframe):
-    """
-    Save Funding Dataframe to CSV File in Output/Funding.csv
 
-    :param funding_dataframe:
-    :return: True
-    """
-    data = pd.DataFrame()
-    data = funding_dataframe.transpose()
-    print(data.transpose().head())
-    data.to_csv(funding_file_path)
-    return True

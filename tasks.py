@@ -1,9 +1,8 @@
+import pandas as pd
 from RPA.Browser.Selenium import Selenium
 from utils import scrape_agency_list, scrape_investment_list, download_business_case, \
-    save_investment_list, download_all_business_case
-from config import challenge_website_url, funding_file_path
-
-
+     download_all_business_case
+from config import challenge_website_url, funding_file_path, agency_file_path
 
 # Preparing Assets & Required Resources
 challenge_website_url = challenge_website_url
@@ -30,7 +29,6 @@ def download_individual_investments(agency_website_url):
     :return:
     """
     investment_list = scrape_investment_list(agency_website_url)
-    save_investment_list(investment_list)
     download_all_business_case(funding_file_path)
     return True
 
@@ -39,8 +37,10 @@ def download_individual_investments(agency_website_url):
 def main():
     try:
         agency_list = download_agency_list(challenge_website_url)
-        agency_website_url = "https://itdashboard.gov/drupal/summary/005"
-        download_individual_investments(agency_website_url)
+        for agency in range(len(agency_list)):
+            print(agency_list['agency_link'][agency])
+            agency_website_url = agency_list['agency_link'][agency]
+            download_individual_investments(agency_website_url)
 
     finally:
         browser_lib.close_all_browsers()
