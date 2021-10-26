@@ -37,10 +37,14 @@ def download_individual_investments(agency_website_url):
 def main():
     try:
         agency_list = download_agency_list(challenge_website_url)
-        for agency in range(len(agency_list)):
-            print(agency_list['agency_link'][agency])
-            agency_website_url = agency_list['agency_link'][agency]
-            download_individual_investments(agency_website_url)
+        download_individual_investments("https://itdashboard.gov/drupal/summary/005")
+
+
+#          for agency in range(len(agency_list)):
+#             print(agency_list['agency_link'][agency])
+#             agency_website_url = agency_list['agency_link'][agency]
+#             download_individual_investments(agency_website_url)
+         
 
     finally:
         browser_lib.close_all_browsers()
